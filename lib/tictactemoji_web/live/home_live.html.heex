@@ -1,0 +1,20 @@
+<main>
+  <h1>
+    TicTacTemoji
+  </h1>
+  <.form :let={f} for={@form} phx-submit="create_game">
+    <div>
+      <.input
+        field={f[:num_players]}
+        id="num_players"
+        label="Number of players"
+        type="select"
+        options={["1", "2", "3"]}
+      />
+    </div>
+
+    <.button type="submit" phx-disable-with="Creating game...">
+      Start New Game
+    </.button>
+  </.form>
+</main>
