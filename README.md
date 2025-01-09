@@ -20,8 +20,9 @@ Ready to run in production? Please [check our deployment guides](https://hexdocs
 
 ```
 iex> {:ok, game} = Tictactemoji.Game.new("ABC123")
-iex> {:ok, game} = Tictactemoji.Game.set_options(game, num_players: 2)
-iex> {:ok, code, game} = Tictactemoji.Game.add_player(game)
+iex> {:ok, game} = Tictactemoji.Game.set_options(game, num_players: 3)
+iex> {:ok, code, game} = Tictactemoji.Game.add_human_player(game)
+iex> {:ok, game} = Tictactemoji.Game.add_cpu_players(game)
 ```
 
 game = %Tictactemoji.Game{ id: "ABC123", grid_size: 3, num_players: 2, current_player: 1, player_codes: ["N8GD6", "HQSRE"], player_emojis: [128056, 128053], sparse_grid: [[1, 3, 5], [0, 2, 4]], game_over?: false }

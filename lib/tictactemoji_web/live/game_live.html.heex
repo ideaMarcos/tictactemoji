@@ -1,37 +1,84 @@
 <div :if={Game.ready?(@game)}>
-  <div>
-    <span>&#{@my_emoji};</span>
-    <span>Game ID: </span>
-    <span>{@game.id}</span>
-  </div>
-  <div>
-    <span>{@game.num_players} Players</span>
-  </div>
-  <div id="game-grid">
-    <table>
-      <tr :for={row <- Game.to_full_grid(@game)}>
-        <td :for={cell <- row}>
-          <%= if cell.player == -1 do %>
-            <.playable_cell position={cell.position} />
+  <div class="flex justify-between items-center p-4">
+    <ul class="flex gap-4">
+      <li :for={{emoji, index} <- Enum.with_index(@game.player_emojis)} class="text-2xl">
+        <%= if @game.current_player == index do %>
+          <%= if is_player_winner?(@game, index) do %>
+            🏆&#{emoji};🏆
           <% else %>
-            <.taken_cell cell={format_cell(@game, cell)} />
+            <u>&#{emoji};</u>
           <% end %>
+        <% else %>
+          &#{emoji};
+        <% end %>
+      </li>
+    </ul>
+    <div class="text-lg">
+      <span>Game ID: </span>
+      <span class="font-mono">{@game.id}</span>
+    </div>
+  </div>
+  <div class="text-center mb-4">
+    <span class="text-lg">{@game.num_players} Players</span>
+  </div>
+  <div id="game-grid" class="w-full max-w-3xl mx-auto p-4">
+    <table class="w-full aspect-square border-collapse">
+      <tr
+        :for={row <- Game.to_full_grid(@game)}
+        class="border-b-8 border-slate-300 last:border-b-0"
+      >
+        <td :for={cell <- row} class="border-r-8 border-slate-300 last:border-r-0 p-0">
+          <button
+            :if={cell.player == -1 && @game.current_player == @my_player_index}
+            phx-click="play_position"
+            phx-value-position={cell.position}
+            class="w-full h-full flex items-center justify-center text-6xl aspect-square hover:bg-slate-100 transition-colors"
+          >
+            ❓
+          </button>
+
+          <span
+            :if={cell.player == -1 && @game.current_player != @my_player_index}
+            class="w-full h-full flex items-center justify-center text-6xl aspect-square"
+          >
+            ❓
+          </span>
+          <span
+            :if={cell.player != -1 && !is_player_winner?(@game, cell.player)}
+            class="w-full h-full flex items-center justify-center text-6xl aspect-square"
+          >
+            &#{format_cell(@game, cell).player};
+          </span>
+          <span
+            :if={cell.player != -1 && is_player_winner?(@game, cell.player)}
+            class="w-full h-full flex items-center justify-center text-6xl aspect-square bg-slate-100"
+          >
+            &#{format_cell(@game, cell).player};
+          </span>
         </td>
       </tr>
     </table>
   </div>
 </div>
 
-<div :if={!Game.ready?(@game)}>
-  <div>
+<div :if={!Game.ready?(@game)} class="p-4 text-center">
+  <div class="text-xl mb-4">
     {ngettext(
       "Waiting for 1 player.",
       "Waiting for %{count} players.",
       @game.num_players - length(@game.player_codes)
     )}
   </div>
-  <div>
-    <span>Invite more players with the url:</span>
-    <span>{"http://localhost:4000/game/join/#{@game.id}"}</span>
+  <div class="space-y-2">
+    <span class="block">Invite more players with the url:</span>
+    <span class="font-mono bg-slate-100 p-2 rounded block break-all">
+      {"http://localhost:4000/game/join/#{@game.id}"}
+    </span>
+  </div>
+  <div class="space-y-2">
+    <span class="block">OR</span>
+  </div>
+  <div class="space-y-2">
+    <button phx-click="add_cpu_players">Play against the computer</button>
   </div>
 </div>

@@ -10,10 +10,14 @@ defmodule Tictactemoji.Game do
   ###
   ### OR
   ###
-  ###  0 |  1
-  ###  2 |  3
+  ###  0 |  1 |  2 |  3 |  4
+  ###  5 |  6 |  7 |  8 |  9
+  ### 10 | 11 | 12 | 13 | 14
+  ### 15 | 16 | 17 | 18 | 19
+  ### 20 | 21 | 22 | 23 | 24
 
-  @not_played_position -1
+  @unplayed_position -1
+  @cpu_code "CPU"
 
   defstruct id: nil,
             grid_size: nil,
@@ -49,27 +53,30 @@ defmodule Tictactemoji.Game do
   end
 
   defp do_set_options(%__MODULE__{} = game, options) do
-    num_players = Keyword.get(options, :num_players, 1)
-    grid_size = max(num_players + 1, 3)
+    num_players = Keyword.get(options, :num_players)
+    grid_size = num_players + 1
 
     {:ok,
      %{
        game
        | grid_size: grid_size,
-         num_players: num_players,
-         sparse_grid:
-           List.duplicate(@not_played_position, grid_size) |> List.duplicate(num_players)
+         num_players: num_players
      }}
   end
 
   defp start_game_if_ready(%__MODULE__{id: id} = game) do
     if ready?(game) do
       Logger.info("starting new game", id: id)
+      max_matches = max(game.grid_size - 2, 3)
 
       %{
         game
         | current_player: Enum.random(0..(game.num_players - 1)),
-          player_emojis: Enum.take_random(~c"🐶🐱🐭🐹🐰🦊🐻🐼🐨🐯", game.num_players)
+          player_codes: Enum.shuffle(game.player_codes),
+          player_emojis: Enum.take_random(~c"🐶🐱🐭🐹🐰🦊🐻🐼🐨🐯", game.num_players),
+          sparse_grid:
+            List.duplicate(@unplayed_position, max_matches)
+            |> List.duplicate(game.num_players)
       }
     else
       game
@@ -80,7 +87,7 @@ defmodule Tictactemoji.Game do
     length(game.player_codes) == game.num_players
   end
 
-  def add_player(%__MODULE__{} = game) do
+  def add_human_player(%__MODULE__{} = game) do
     if length(game.player_codes) >= game.num_players do
       {:error, :too_many_players}
     else
@@ -92,6 +99,16 @@ defmodule Tictactemoji.Game do
        %{game | player_codes: [code | game.player_codes]}
        |> start_game_if_ready()}
     end
+  end
+
+  def add_cpu_players(%__MODULE__{} = game) do
+    remaining =
+      List.duplicate(@cpu_code, game.num_players - length(game.player_codes))
+      |> Enum.with_index(fn x, index -> "#{x}#{index + 1}" end)
+
+    game = %{game | player_codes: remaining ++ game.player_codes}
+
+    {:ok, start_game_if_ready(game)}
   end
 
   def play_position(%__MODULE__{game_over?: true}, _), do: {:error, :game_over}
@@ -124,6 +141,33 @@ defmodule Tictactemoji.Game do
     end
   end
 
+  def get_first_human_player_index(%__MODULE__{} = game) do
+    game.player_codes
+    |> Enum.find_index(fn x -> not String.starts_with?(x, @cpu_code) end)
+  end
+
+  def is_cpu_move?(%__MODULE__{current_player: nil}), do: false
+
+  def is_cpu_move?(%__MODULE__{} = game) do
+    game.player_codes
+    |> Enum.at(game.current_player)
+    |> String.starts_with?(@cpu_code)
+  end
+
+  def make_cpu_move(%__MODULE__{game_over?: true} = game), do: {:ok, game}
+
+  def make_cpu_move(%__MODULE__{} = game) do
+    if is_cpu_move?(game) do
+      position =
+        playable_positions(game)
+        |> Enum.random()
+
+      play_position(game, position)
+    else
+      {:ok, game}
+    end
+  end
+
   def playable_position?(%__MODULE__{} = game, position) do
     position in playable_positions(game)
   end
@@ -146,7 +190,7 @@ defmodule Tictactemoji.Game do
     |> Enum.concat(
       game
       |> playable_positions()
-      |> Enum.map(fn x -> {x, @not_played_position} end)
+      |> Enum.map(fn x -> {x, @unplayed_position} end)
     )
     |> List.flatten()
     |> Enum.sort()
@@ -165,7 +209,7 @@ defmodule Tictactemoji.Game do
 
   defp remove_unplayed_positions(positions) do
     positions
-    |> Enum.reject(fn x -> x == @not_played_position end)
+    |> Enum.reject(fn x -> x == @unplayed_position end)
   end
 
   def current_player_oldest_position(%__MODULE__{} = game) do
@@ -179,15 +223,15 @@ defmodule Tictactemoji.Game do
     winning_moves?(current_positions, game.grid_size)
   end
 
-  defp winning_moves?(moves, grid_size) do
+  def winning_moves?(moves, grid_size) do
     moves = Enum.sort(moves)
 
     cond do
-      Enum.all?(moves, fn x -> x < 0 || x >= grid_size end) -> false
+      List.first(moves) < 0 -> false
+      List.last(moves) >= Integer.pow(grid_size, 2) -> false
       horizontal_winning_moves?(moves, grid_size) -> true
       vertical_winning_moves?(moves, grid_size) -> true
-      main_diagonal_winning_moves?(moves, grid_size) -> true
-      anti_diagonal_winning_moves?(moves, grid_size) -> true
+      diagonal_winning_moves?(moves, grid_size) -> true
       true -> false
     end
   end
@@ -206,15 +250,15 @@ defmodule Tictactemoji.Game do
   """
 
   def horizontal_winning_moves?(moves, grid_size) do
-    is_left_column = rem(hd(moves), grid_size) == 0
-
-    if is_left_column do
+    winning =
       moves
-      |> calc_diffs()
+      |> calc_row_diffs(grid_size)
+      |> Enum.all?(fn x -> x == 0 end)
+
+    winning &&
+      moves
+      |> calc_column_diffs(grid_size)
       |> Enum.all?(fn x -> x == 1 end)
-    else
-      false
-    end
   end
 
   @doc ~S"""
@@ -231,56 +275,49 @@ defmodule Tictactemoji.Game do
   """
 
   def vertical_winning_moves?(moves, grid_size) do
-    moves
-    |> calc_diffs()
-    |> Enum.all?(fn x -> x == grid_size end)
+    winning =
+      moves
+      |> calc_row_diffs(grid_size)
+      |> Enum.all?(fn x -> x == 1 end)
+
+    winning &&
+      moves
+      |> calc_column_diffs(grid_size)
+      |> Enum.all?(fn x -> x == 0 end)
   end
 
   @doc ~S"""
-  Checks if the given `moves` form a vertical winning position.
+  Checks if the given `moves` form a diagonal winning position.
 
   ## Examples
 
-      iex> Tictactemoji.Game.main_diagonal_winning_moves?([0, 4, 8], 3)
+      iex> Tictactemoji.Game.diagonal_winning_moves?([1, 7, 13], 5)
       true
 
-      iex> Tictactemoji.Game.main_diagonal_winning_moves?([4, 8, 12], 3)
+      iex> Tictactemoji.Game.diagonal_winning_moves?([3, 9, 15], 5)
+      false
+
+      iex> Tictactemoji.Game.diagonal_winning_moves?([2, 4, 6], 3)
+      true
+
+      iex> Tictactemoji.Game.diagonal_winning_moves?([0, 2, 4], 3)
+      false
+
+      iex> Tictactemoji.Game.diagonal_winning_moves?([1, 3, 5], 3)
       false
 
   """
 
-  def main_diagonal_winning_moves?([0 | _] = moves, grid_size) do
-    diffs = calc_diffs(moves)
+  def diagonal_winning_moves?(moves, grid_size) do
+    row_diffs = calc_row_diffs(moves, grid_size)
+    column_diffs = calc_column_diffs(moves, grid_size)
 
-    Enum.all?(diffs, fn x -> x == grid_size + 1 end)
-  end
-
-  def main_diagonal_winning_moves?(_, _) do
-    false
-  end
-
-  @doc ~S"""
-  Checks if the given `moves` form a vertical winning position.
-
-  ## Examples
-
-      iex> Tictactemoji.Game.anti_diagonal_winning_moves?([2, 4, 6], 3)
-      true
-
-      iex> Tictactemoji.Game.anti_diagonal_winning_moves?([0, 2, 4], 3)
-      false
-
-  """
-
-  def anti_diagonal_winning_moves?([0, _], _) do
-    false
-  end
-
-  def anti_diagonal_winning_moves?(moves, grid_size) do
-    diffs = calc_diffs(moves)
-
-    List.first(moves) != 0 &&
-      Enum.all?(diffs, fn x -> x == grid_size - 1 end)
+    cond do
+      Enum.any?(row_diffs, fn x -> x != 1 end) -> false
+      Enum.all?(column_diffs, fn x -> x == 1 end) -> true
+      Enum.all?(column_diffs, fn x -> x == -1 end) -> true
+      true -> false
+    end
   end
 
   # defp calc_diffs(moves) do
@@ -298,5 +335,25 @@ defmodule Tictactemoji.Game do
       {x, [x - previous | diffs]}
     end)
     |> elem(1)
+  end
+
+  def calc_row_diffs(moves, grid_size) do
+    moves
+    |> Enum.map(fn x -> calc_row_index(x, grid_size) end)
+    |> calc_diffs()
+  end
+
+  def calc_row_index(position, grid_size) do
+    div(position, grid_size)
+  end
+
+  def calc_column_diffs(moves, grid_size) do
+    moves
+    |> Enum.map(fn x -> calc_column_index(x, grid_size) end)
+    |> calc_diffs()
+  end
+
+  def calc_column_index(position, grid_size) do
+    rem(position, grid_size)
   end
 end

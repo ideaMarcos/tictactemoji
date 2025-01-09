@@ -12,10 +12,17 @@ defmodule Tictactemoji.GameServer do
     call_by_name(game_id, :get_game)
   end
 
-  def add_player(game_id) do
-    with {:ok, code, game} <- call_by_name(game_id, :add_player),
+  def add_human_player(game_id) do
+    with {:ok, code, game} <- call_by_name(game_id, :add_human_player),
          :ok <- broadcast_player_added!(game_id, game) do
       {:ok, code}
+    end
+  end
+
+  def add_cpu_players(game_id) do
+    with {:ok, game} <- call_by_name(game_id, :add_cpu_players),
+         :ok <- broadcast_player_added!(game_id, game) do
+      :ok
     end
   end
 
@@ -28,6 +35,13 @@ defmodule Tictactemoji.GameServer do
 
   def play_position(game_id, position) do
     with {:ok, game} <- call_by_name(game_id, {:play_position, position}),
+         :ok <- broadcast_game_updated!(game_id, game) do
+      {:ok, game}
+    end
+  end
+
+  def make_cpu_move(game_id) do
+    with {:ok, game} <- call_by_name(game_id, :make_cpu_move),
          :ok <- broadcast_game_updated!(game_id, game) do
       {:ok, game}
     end
@@ -56,14 +70,20 @@ defmodule Tictactemoji.GameServer do
   end
 
   @impl GenServer
-  def handle_call(:add_player, _from, state) do
-    case Game.add_player(state.game) do
+  def handle_call(:add_human_player, _from, state) do
+    case Game.add_human_player(state.game) do
       {:ok, code, game} ->
         {:reply, {:ok, code, game}, %{state | game: game}}
 
       {:error, _} = error ->
         {:reply, error, state}
     end
+  end
+
+  @impl GenServer
+  def handle_call(:add_cpu_players, _from, state) do
+    {:ok, game} = Game.add_cpu_players(state.game)
+    {:reply, {:ok, game}, %{state | game: game}}
   end
 
   @impl GenServer
@@ -86,6 +106,12 @@ defmodule Tictactemoji.GameServer do
       {:error, _} = error ->
         {:reply, error, state}
     end
+  end
+
+  @impl GenServer
+  def handle_call(:make_cpu_move, _from, state) do
+    {:ok, game} = Game.make_cpu_move(state.game)
+    {:reply, {:ok, game}, %{state | game: game}}
   end
 
   @spec broadcast!(String.t(), atom(), map()) :: :ok

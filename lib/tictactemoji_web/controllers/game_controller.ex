@@ -4,7 +4,7 @@ defmodule TictactemojiWeb.GameController do
   alias Tictactemoji.GameServer
 
   def join(conn, %{"id" => game_id} = _params) do
-    case GameServer.add_player(game_id) do
+    case GameServer.add_human_player(game_id) do
       {:ok, code} ->
         conn
         |> put_session(:code, code)
