@@ -6,7 +6,7 @@
           <%= if is_player_winner?(@game, index) do %>
             🏆&#{emoji};🏆
           <% else %>
-            <u>&#{emoji};</u>
+            <div class="underline">&#{emoji};</div>
           <% end %>
         <% else %>
           &#{emoji};
@@ -30,7 +30,7 @@
         <td :for={cell <- row} class="border-r-8 border-slate-300 last:border-r-0 p-0">
           <button
             :if={cell.player == -1 && @game.current_player == @my_player_index}
-            phx-click="play_position"
+            phx-click="mark_position"
             phx-value-position={cell.position}
             class="w-full h-full flex items-center justify-center text-6xl aspect-square hover:bg-slate-100 transition-colors"
           >
@@ -45,13 +45,16 @@
           </span>
           <span
             :if={cell.player != -1 && !is_player_winner?(@game, cell.player)}
-            class="w-full h-full flex items-center justify-center text-6xl aspect-square"
+            class={[
+              "w-full h-full flex items-center justify-center text-6xl aspect-square",
+              last_played_position_class(@game, cell.position)
+            ]}
           >
             &#{format_cell(@game, cell).player};
           </span>
           <span
             :if={cell.player != -1 && is_player_winner?(@game, cell.player)}
-            class="w-full h-full flex items-center justify-center text-6xl aspect-square bg-slate-100"
+            class="w-full h-full flex items-center justify-center text-6xl aspect-square bg-slate-100 #{last_played_position_class(@game, cell.position)}"
           >
             &#{format_cell(@game, cell).player};
           </span>

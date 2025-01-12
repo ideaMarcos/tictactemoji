@@ -33,8 +33,8 @@ defmodule Tictactemoji.GameServer do
     end
   end
 
-  def play_position(game_id, position) do
-    with {:ok, game} <- call_by_name(game_id, {:play_position, position}),
+  def mark_position(game_id, position) do
+    with {:ok, game} <- call_by_name(game_id, {:mark_position, position}),
          :ok <- broadcast_game_updated!(game_id, game) do
       {:ok, game}
     end
@@ -73,6 +73,7 @@ defmodule Tictactemoji.GameServer do
   def handle_call(:add_human_player, _from, state) do
     case Game.add_human_player(state.game) do
       {:ok, code, game} ->
+        schedule_cpu_move(game)
         {:reply, {:ok, code, game}, %{state | game: game}}
 
       {:error, _} = error ->
@@ -83,6 +84,7 @@ defmodule Tictactemoji.GameServer do
   @impl GenServer
   def handle_call(:add_cpu_players, _from, state) do
     {:ok, game} = Game.add_cpu_players(state.game)
+    schedule_cpu_move(game)
     {:reply, {:ok, game}, %{state | game: game}}
   end
 
@@ -98,9 +100,10 @@ defmodule Tictactemoji.GameServer do
   end
 
   @impl GenServer
-  def handle_call({:play_position, position}, _from, state) do
-    case Game.play_position(state.game, position) do
+  def handle_call({:mark_position, position}, _from, state) do
+    case Game.mark_position(state.game, position) do
       {:ok, game} ->
+        schedule_cpu_move(game)
         {:reply, {:ok, game}, %{state | game: game}}
 
       {:error, _} = error ->
@@ -109,9 +112,22 @@ defmodule Tictactemoji.GameServer do
   end
 
   @impl GenServer
-  def handle_call(:make_cpu_move, _from, state) do
-    {:ok, game} = Game.make_cpu_move(state.game)
-    {:reply, {:ok, game}, %{state | game: game}}
+  def handle_info(:make_cpu_move, state) do
+    case Game.make_cpu_move(state.game) do
+      {:ok, game} ->
+        schedule_cpu_move(game)
+        broadcast_game_updated!(state.game.id, game)
+        {:noreply, %{state | game: game}}
+
+      {:error, _} ->
+        {:noreply, state}
+    end
+  end
+
+  defp schedule_cpu_move(game) do
+    if Game.is_cpu_move?(game) do
+      Process.send_after(self(), :make_cpu_move, 2000)
+    end
   end
 
   @spec broadcast!(String.t(), atom(), map()) :: :ok

@@ -16,17 +16,19 @@ defmodule TictactemojiWeb.GameLive do
 
       my_emoji = Enum.at(game.player_emojis, my_player_index)
 
-      Presence.track(self(), game_id, my_player_index, %{
-        emoji: my_emoji
-      })
-
-      Presence.subscribe(game_id)
-
       presences =
-        Presence.list(game_id)
-        |> Presence.simple_presence_map()
+        if connected?(socket) do
+          Phoenix.PubSub.subscribe(Tictactemoji.PubSub, game_id)
 
-      make_cpu_move(game, my_player_index)
+          Presence.track(self(), game_id, my_player_index, %{
+            emoji: my_emoji
+          })
+
+          Presence.list(game_id)
+          |> Presence.simple_presence_map()
+        else
+          []
+        end
 
       {:ok,
        socket
@@ -34,14 +36,30 @@ defmodule TictactemojiWeb.GameLive do
        |> assign(:my_player_index, my_player_index)
        |> assign(:my_player_code, player_code)
        |> assign(:my_emoji, my_emoji)
+       #  |> subscribe_to_game(game_id)}
        |> assign(:presences, presences)}
     else
       _ -> {:ok, redirect(socket, to: "/")}
     end
   end
 
-  def handle_event("play_position", %{"position" => position}, socket) do
-    {:ok, _} = GameServer.play_position(socket.assigns.game.id, String.to_integer(position))
+  # defp subscribe_to_game(socket, game_id) do
+  #   subscribed =
+  #     if is_nil(socket.assigns.subscribed) && connected?(socket) do
+  #       Phoenix.PubSub.subscribe(Tictactemoji.PubSub, game_id)
+  #       |> to_string()
+  #     else
+  #       socket.assigns.subscribed
+  #     end
+
+  #   socket
+  #   |> assign(:subscribed, subscribed)
+  # end
+
+  def handle_event("mark_position", %{"position" => position}, socket) do
+    {:ok, _} =
+      GameServer.mark_position(socket.assigns.game.id, String.to_integer(position))
+
     {:noreply, socket}
   end
 
@@ -54,9 +72,6 @@ defmodule TictactemojiWeb.GameLive do
     my_player_index =
       Enum.find_index(game.player_codes, fn x -> x == socket.assigns.my_player_code end)
 
-    IO.inspect(game, label: "player_added")
-    make_cpu_move(game, my_player_index)
-
     {:noreply,
      socket
      |> update(:my_player_index, fn _ -> my_player_index end)
@@ -64,15 +79,6 @@ defmodule TictactemojiWeb.GameLive do
   end
 
   def handle_info(%{event: :game_updated, payload: game}, socket) do
-    IO.inspect(
-      [
-        payload_sparse_grid: game.sparse_grid,
-        socket_sparse_grid: socket.assigns.game.sparse_grid
-      ],
-      label: "GAME_UPDATED"
-    )
-
-    make_cpu_move(game, socket.assigns.my_player_index)
     {:noreply, update(socket, :game, fn _ -> game end)}
   end
 
@@ -83,11 +89,6 @@ defmodule TictactemojiWeb.GameLive do
     {:noreply, socket |> Presence.handle_diff(diff)}
   end
 
-  def handle_info(:make_cpu_move, socket) do
-    {:ok, _} = GameServer.make_cpu_move(socket.assigns.game.id)
-    {:noreply, socket}
-  end
-
   def handle_params(_params, _uri, socket) do
     {:noreply, socket}
   end
@@ -96,19 +97,22 @@ defmodule TictactemojiWeb.GameLive do
     cell
   end
 
-  defp format_cell(game, %Tictactemoji.GridCell{} = cell) do
+  defp format_cell(%Game{} = game, %Tictactemoji.GridCell{} = cell) do
     emoji = Enum.at(game.player_emojis, cell.player)
     %{cell | player: emoji}
   end
 
-  defp make_cpu_move(game, current_player_index) do
-    if Game.ready?(game) && Game.is_cpu_move?(game) &&
-         Game.get_first_human_player_index(game) == current_player_index do
-      Process.send_after(self(), :make_cpu_move, 2000)
-    end
+  defp is_player_winner?(%Game{} = game, index) do
+    game.game_over? && game.current_player == index
   end
 
-  defp is_player_winner?(game, index) do
-    game.game_over? && game.current_player == index
+  defp last_played_position_class(%Game{} = game, position) do
+    game.sparse_grid
+    |> Enum.flat_map(fn row -> [List.first(row)] end)
+    |> Enum.any?(fn x -> x == position end)
+    |> case do
+      true -> "underline"
+      false -> ""
+    end
   end
 end

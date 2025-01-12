@@ -14,10 +14,6 @@ defmodule Tictactemoji.Presence do
     presences
   end
 
-  def subscribe(topic) do
-    Phoenix.PubSub.subscribe(Tictactemoji.PubSub, topic)
-  end
-
   def simple_presence_map(presences) do
     Enum.into(presences, %{}, fn {topic, %{metas: [meta | _]}} ->
       {topic, meta}

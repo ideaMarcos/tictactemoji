@@ -111,9 +111,9 @@ defmodule Tictactemoji.Game do
     {:ok, start_game_if_ready(game)}
   end
 
-  def play_position(%__MODULE__{game_over?: true}, _), do: {:error, :game_over}
+  def mark_position(%__MODULE__{game_over?: true}, _), do: {:error, :game_over}
 
-  def play_position(%__MODULE__{} = game, position) do
+  def mark_position(%__MODULE__{} = game, position) do
     if game.game_over? do
       {:error, :game_over}
     else
@@ -147,6 +147,7 @@ defmodule Tictactemoji.Game do
   end
 
   def is_cpu_move?(%__MODULE__{current_player: nil}), do: false
+  def is_cpu_move?(%__MODULE__{game_over?: true}), do: false
 
   def is_cpu_move?(%__MODULE__{} = game) do
     game.player_codes
@@ -154,17 +155,15 @@ defmodule Tictactemoji.Game do
     |> String.starts_with?(@cpu_code)
   end
 
-  def make_cpu_move(%__MODULE__{game_over?: true} = game), do: {:ok, game}
-
   def make_cpu_move(%__MODULE__{} = game) do
     if is_cpu_move?(game) do
       position =
         playable_positions(game)
         |> Enum.random()
 
-      play_position(game, position)
+      mark_position(game, position)
     else
-      {:ok, game}
+      {:error, :not_cpu_move}
     end
   end
 
@@ -250,15 +249,17 @@ defmodule Tictactemoji.Game do
   """
 
   def horizontal_winning_moves?(moves, grid_size) do
-    winning =
+    row_winner =
       moves
       |> calc_row_diffs(grid_size)
       |> Enum.all?(fn x -> x == 0 end)
 
-    winning &&
+    column_winner =
       moves
       |> calc_column_diffs(grid_size)
       |> Enum.all?(fn x -> x == 1 end)
+
+    row_winner && column_winner
   end
 
   @doc ~S"""
@@ -275,15 +276,17 @@ defmodule Tictactemoji.Game do
   """
 
   def vertical_winning_moves?(moves, grid_size) do
-    winning =
+    row_winner =
       moves
       |> calc_row_diffs(grid_size)
       |> Enum.all?(fn x -> x == 1 end)
 
-    winning &&
+    column_winner =
       moves
       |> calc_column_diffs(grid_size)
       |> Enum.all?(fn x -> x == 0 end)
+
+    row_winner && column_winner
   end
 
   @doc ~S"""
