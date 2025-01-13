@@ -4,7 +4,7 @@ defmodule Tictactemoji.Presence do
   def fetch(_game_id, presences) do
     # TODO if there was db, then get players from db
     # {:ok, game} = Tictactemoji.GameServer.get_game(game_id)
-    # Enum.zip(game.player_codes, game.player_names)
+    # Enum.zip(game.player_tokens, game.player_names)
     # |> Enum.into(%{})
 
     # for {key, %{metas: metas}} <- presences, into: %{} do

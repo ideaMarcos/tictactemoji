@@ -19,7 +19,7 @@ defmodule TictactemojiWeb.Router do
 
     live "/", HomeLive
     get "/game/join/:id", GameController, :join
-    live "/game/play/:id", GameLive
+    live "/game/play", GameLive
   end
 
   # Other scopes may use custom stacks.

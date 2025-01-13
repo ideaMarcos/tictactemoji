@@ -13,9 +13,9 @@ defmodule Tictactemoji.GameServer do
   end
 
   def add_human_player(game_id) do
-    with {:ok, code, game} <- call_by_name(game_id, :add_human_player),
+    with {:ok, token, game} <- call_by_name(game_id, :add_human_player),
          :ok <- broadcast_player_added!(game_id, game) do
-      {:ok, code}
+      {:ok, token}
     end
   end
 
@@ -72,9 +72,9 @@ defmodule Tictactemoji.GameServer do
   @impl GenServer
   def handle_call(:add_human_player, _from, state) do
     case Game.add_human_player(state.game) do
-      {:ok, code, game} ->
+      {:ok, token, game} ->
         schedule_cpu_move(game)
-        {:reply, {:ok, code, game}, %{state | game: game}}
+        {:reply, {:ok, token, game}, %{state | game: game}}
 
       {:error, _} = error ->
         {:reply, error, state}

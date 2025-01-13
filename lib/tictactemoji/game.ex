@@ -17,13 +17,13 @@ defmodule Tictactemoji.Game do
   ### 20 | 21 | 22 | 23 | 24
 
   @unplayed_position -1
-  @cpu_code "CPU"
+  @cpu_token "CPU"
 
   defstruct id: nil,
             grid_size: nil,
             num_players: nil,
             current_player: nil,
-            player_codes: nil,
+            player_tokens: nil,
             player_emojis: nil,
             sparse_grid: nil,
             game_over?: nil
@@ -31,7 +31,7 @@ defmodule Tictactemoji.Game do
   def new(game_id) do
     game = %__MODULE__{
       id: game_id,
-      player_codes: [],
+      player_tokens: [],
       player_emojis: [],
       game_over?: false
     }
@@ -45,7 +45,7 @@ defmodule Tictactemoji.Game do
   end
 
   def set_options(%__MODULE__{} = game, options) when is_list(options) do
-    if game.player_codes == [] do
+    if game.player_tokens == [] do
       do_set_options(game, options)
     else
       {:error, :game_already_started}
@@ -72,8 +72,8 @@ defmodule Tictactemoji.Game do
       %{
         game
         | current_player: Enum.random(0..(game.num_players - 1)),
-          player_codes: Enum.shuffle(game.player_codes),
-          player_emojis: Enum.take_random(~c"🐶🐱🐭🐹🐰🦊🐻🐼🐨🐯", game.num_players),
+          player_tokens: Enum.shuffle(game.player_tokens),
+          player_emojis: Enum.take_random(~c"🐶🐱🐭🐰🦊🐻🐼🐨🦁🐮🐷🐸", game.num_players),
           sparse_grid:
             List.duplicate(@unplayed_position, max_matches)
             |> List.duplicate(game.num_players)
@@ -84,29 +84,29 @@ defmodule Tictactemoji.Game do
   end
 
   def ready?(%__MODULE__{} = game) do
-    length(game.player_codes) == game.num_players
+    length(game.player_tokens) == game.num_players
   end
 
   def add_human_player(%__MODULE__{} = game) do
-    if length(game.player_codes) >= game.num_players do
+    if length(game.player_tokens) >= game.num_players do
       {:error, :too_many_players}
     else
-      code =
+      token =
         Enum.take_random(~c/ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/, 5)
         |> to_string()
 
-      {:ok, code,
-       %{game | player_codes: [code | game.player_codes]}
+      {:ok, token,
+       %{game | player_tokens: [token | game.player_tokens]}
        |> start_game_if_ready()}
     end
   end
 
   def add_cpu_players(%__MODULE__{} = game) do
     remaining =
-      List.duplicate(@cpu_code, game.num_players - length(game.player_codes))
+      List.duplicate(@cpu_token, game.num_players - length(game.player_tokens))
       |> Enum.with_index(fn x, index -> "#{x}#{index + 1}" end)
 
-    game = %{game | player_codes: remaining ++ game.player_codes}
+    game = %{game | player_tokens: remaining ++ game.player_tokens}
 
     {:ok, start_game_if_ready(game)}
   end
@@ -142,25 +142,24 @@ defmodule Tictactemoji.Game do
   end
 
   def get_first_human_player_index(%__MODULE__{} = game) do
-    game.player_codes
-    |> Enum.find_index(fn x -> not String.starts_with?(x, @cpu_code) end)
+    game.player_tokens
+    |> Enum.find_index(fn x -> not String.starts_with?(x, @cpu_token) end)
   end
 
   def is_cpu_move?(%__MODULE__{current_player: nil}), do: false
   def is_cpu_move?(%__MODULE__{game_over?: true}), do: false
 
   def is_cpu_move?(%__MODULE__{} = game) do
-    game.player_codes
+    game.player_tokens
     |> Enum.at(game.current_player)
-    |> String.starts_with?(@cpu_code)
+    |> String.starts_with?(@cpu_token)
   end
 
   def make_cpu_move(%__MODULE__{} = game) do
-    if is_cpu_move?(game) do
-      position =
-        playable_positions(game)
-        |> Enum.random()
+    IO.inspect("make_cpu_move")
 
+    if is_cpu_move?(game) do
+      position = Tictactemoji.Cpu.choose_position(game)
       mark_position(game, position)
     else
       {:error, :not_cpu_move}
@@ -168,10 +167,10 @@ defmodule Tictactemoji.Game do
   end
 
   def playable_position?(%__MODULE__{} = game, position) do
-    position in playable_positions(game)
+    position in open_positions(game)
   end
 
-  def playable_positions(%__MODULE__{} = game) do
+  def open_positions(%__MODULE__{} = game) do
     taken = all_positions(game)
 
     0..(Integer.pow(game.grid_size, 2) - 1)
@@ -188,7 +187,7 @@ defmodule Tictactemoji.Game do
     end)
     |> Enum.concat(
       game
-      |> playable_positions()
+      |> open_positions()
       |> Enum.map(fn x -> {x, @unplayed_position} end)
     )
     |> List.flatten()

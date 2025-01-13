@@ -6,13 +6,11 @@ defmodule TictactemojiWeb.GameLive do
   alias Tictactemoji.GameServer
   alias Tictactemoji.Presence
 
-  def mount(params, session, socket) do
-    game_id = Map.get(params, "id")
-
-    with %{"code" => player_code} <- session,
+  def mount(_params, session, socket) do
+    with %{"token" => player_token, "game_id" => game_id} <- session,
          {:ok, game} <- GameServer.get_game(game_id) do
       my_player_index =
-        Enum.find_index(game.player_codes, fn x -> x == player_code end)
+        Enum.find_index(game.player_tokens, fn x -> x == player_token end)
 
       my_emoji = Enum.at(game.player_emojis, my_player_index)
 
@@ -34,7 +32,7 @@ defmodule TictactemojiWeb.GameLive do
        socket
        |> assign(:game, game)
        |> assign(:my_player_index, my_player_index)
-       |> assign(:my_player_code, player_code)
+       |> assign(:my_player_token, player_token)
        |> assign(:my_emoji, my_emoji)
        #  |> subscribe_to_game(game_id)}
        |> assign(:presences, presences)}
@@ -70,7 +68,7 @@ defmodule TictactemojiWeb.GameLive do
 
   def handle_info(%{event: :player_added, payload: game}, socket) do
     my_player_index =
-      Enum.find_index(game.player_codes, fn x -> x == socket.assigns.my_player_code end)
+      Enum.find_index(game.player_tokens, fn x -> x == socket.assigns.my_player_token end)
 
     {:noreply,
      socket
