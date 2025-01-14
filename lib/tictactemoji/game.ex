@@ -21,6 +21,7 @@ defmodule Tictactemoji.Game do
 
   defstruct id: nil,
             grid_size: nil,
+            sequence_size: nil,
             num_players: nil,
             current_player: nil,
             player_tokens: nil,
@@ -67,15 +68,16 @@ defmodule Tictactemoji.Game do
   defp start_game_if_ready(%__MODULE__{id: id} = game) do
     if ready?(game) do
       Logger.info("starting new game", id: id)
-      max_matches = max(game.grid_size - 2, 3)
+      sequence_size = max(game.grid_size - 2, 3)
 
       %{
         game
         | current_player: Enum.random(0..(game.num_players - 1)),
+          sequence_size: sequence_size,
           player_tokens: Enum.shuffle(game.player_tokens),
           player_emojis: Enum.take_random(~c"🐶🐱🐭🐰🦊🐻🐼🐨🦁🐮🐷🐸", game.num_players),
           sparse_grid:
-            List.duplicate(@unplayed_position, max_matches)
+            List.duplicate(@unplayed_position, sequence_size)
             |> List.duplicate(game.num_players)
       }
     else
@@ -214,6 +216,10 @@ defmodule Tictactemoji.Game do
     game.sparse_grid
     |> Enum.at(game.current_player)
     |> hd()
+  end
+
+  def set_current_player(%__MODULE__{} = game, player_index) do
+    %{game | current_player: player_index}
   end
 
   def current_player_won?(%__MODULE__{} = game) do

@@ -126,7 +126,7 @@ defmodule Tictactemoji.GameServer do
 
   defp schedule_cpu_move(game) do
     if Game.is_cpu_move?(game) do
-      Process.send_after(self(), :make_cpu_move, 2000)
+      Process.send_after(self(), :make_cpu_move, 1000)
     end
   end
 
