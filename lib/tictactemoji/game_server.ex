@@ -40,8 +40,8 @@ defmodule Tictactemoji.GameServer do
     end
   end
 
-  def make_cpu_move(game_id) do
-    with {:ok, game} <- call_by_name(game_id, :make_cpu_move),
+  def reset_game(game_id) do
+    with {:ok, game} <- call_by_name(game_id, :reset_game),
          :ok <- broadcast_game_updated!(game_id, game) do
       {:ok, game}
     end
@@ -109,6 +109,13 @@ defmodule Tictactemoji.GameServer do
       {:error, _} = error ->
         {:reply, error, state}
     end
+  end
+
+  @impl GenServer
+  def handle_call(:reset_game, _from, state) do
+    game = Game.reset_game(state.game)
+    schedule_cpu_move(game)
+    {:reply, {:ok, game}, %{state | game: game}}
   end
 
   @impl GenServer

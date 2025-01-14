@@ -3,11 +3,7 @@
     <ul class="flex gap-4">
       <li :for={{emoji, index} <- Enum.with_index(@game.player_emojis)} class="text-2xl">
         <%= if @game.current_player == index do %>
-          <%= if is_player_winner?(@game, index) do %>
-            🏆&#{emoji};🏆
-          <% else %>
-            <div class="underline">&#{emoji};</div>
-          <% end %>
+          <div class="underline">&#{emoji};</div>
         <% else %>
           &#{emoji};
         <% end %>
@@ -18,8 +14,23 @@
       <span class="font-mono">{@game.id}</span>
     </div>
   </div>
-  <div class="text-center mb-4">
-    <span class="text-lg">{@game.num_players} Players</span>
+  <div class="text-center mb-4 font-mono">
+    <span :if={!@game.game_over? && @game.current_player != @my_player_index}>
+      Waiting for &#{player_emoji(@game, @game.current_player)};
+    </span>
+    <span :if={!@game.game_over? && @game.current_player == @my_player_index}>
+      GO &#{player_emoji(@game, @game.current_player)};
+    </span>
+    <span :if={@game.game_over?}>
+      &#{player_emoji(@game, @game.current_player)}; won!
+    </span>
+    <button
+      :if={@game.game_over?}
+      phx-click="reset_game"
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
+    >
+      Rematch
+    </button>
   </div>
   <div id="game-grid" class="w-full max-w-3xl mx-auto p-4">
     <table class="w-full aspect-square border-collapse">
@@ -84,6 +95,11 @@
     <span class="block">OR</span>
   </div>
   <div class="space-y-2">
-    <button phx-click="add_cpu_players">Fill remaining positions with computer players</button>
+    <button
+      phx-click="add_cpu_players"
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
+    >
+      Fill remaining positions with computer players
+    </button>
   </div>
 </div>

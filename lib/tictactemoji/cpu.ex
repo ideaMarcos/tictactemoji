@@ -28,8 +28,7 @@ defmodule Tictactemoji.Cpu do
         {0, nil}
       end
     end
-    |> Enum.sort(:desc)
-    |> List.first()
+    |> Enum.max()
     # |> IO.inspect(label: "-------------WINNING_POSITION")
     |> elem(1)
   end

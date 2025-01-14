@@ -33,8 +33,7 @@ defmodule Tictactemoji.Game do
     game = %__MODULE__{
       id: game_id,
       player_tokens: [],
-      player_emojis: [],
-      game_over?: false
+      player_emojis: []
     }
 
     {:ok, game}
@@ -61,28 +60,36 @@ defmodule Tictactemoji.Game do
      %{
        game
        | grid_size: grid_size,
-         num_players: num_players
+         sequence_size: max(grid_size - 2, 3),
+         num_players: num_players,
+         player_emojis: Enum.take_random(~c"🐶🐱🐭🐰🦊🐻🐼🐨🦁🐮🐷🐸", num_players)
      }}
   end
 
   defp start_game_if_ready(%__MODULE__{id: id} = game) do
     if ready?(game) do
       Logger.info("starting new game", id: id)
-      sequence_size = max(game.grid_size - 2, 3)
-
-      %{
-        game
-        | current_player: Enum.random(0..(game.num_players - 1)),
-          sequence_size: sequence_size,
-          player_tokens: Enum.shuffle(game.player_tokens),
-          player_emojis: Enum.take_random(~c"🐶🐱🐭🐰🦊🐻🐼🐨🦁🐮🐷🐸", game.num_players),
-          sparse_grid:
-            List.duplicate(@unplayed_position, sequence_size)
-            |> List.duplicate(game.num_players)
-      }
+      reset_game(game)
     else
       game
     end
+  end
+
+  def reset_game(%__MODULE__{game_over?: false} = game), do: game
+
+  def reset_game(%__MODULE__{} = game) do
+    player_order = Enum.shuffle(0..(game.num_players - 1))
+
+    %{
+      game
+      | current_player: 0,
+        game_over?: false,
+        player_tokens: Enum.map(player_order, fn x -> Enum.at(game.player_tokens, x) end),
+        player_emojis: Enum.map(player_order, fn x -> Enum.at(game.player_emojis, x) end),
+        sparse_grid:
+          List.duplicate(@unplayed_position, game.sequence_size)
+          |> List.duplicate(game.num_players)
+    }
   end
 
   def ready?(%__MODULE__{} = game) do
@@ -158,8 +165,6 @@ defmodule Tictactemoji.Game do
   end
 
   def make_cpu_move(%__MODULE__{} = game) do
-    IO.inspect("make_cpu_move")
-
     if is_cpu_move?(game) do
       position = Tictactemoji.Cpu.choose_position(game)
       mark_position(game, position)
