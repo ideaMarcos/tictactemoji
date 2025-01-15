@@ -1,7 +1,11 @@
 <div :if={Game.ready?(@game)}>
   <div class="flex justify-between items-center p-4">
     <ul class="flex gap-4">
-      <li :for={{emoji, index} <- Enum.with_index(@game.player_emojis)} class="text-2xl">
+      <li
+        :for={{emoji, index} <- Enum.with_index(@game.player_emojis)}
+        class="text-2xl"
+        id={"emoji#{index}"}
+      >
         <%= if @game.current_player == index do %>
           <div class="underline">&#{emoji};</div>
         <% else %>
@@ -26,7 +30,7 @@
     </span>
     <button
       :if={@game.game_over?}
-      phx-click="reset_game"
+      phx-click={rematch(@game.num_players)}
       class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
     >
       Rematch
@@ -41,8 +45,7 @@
         <td :for={cell <- row} class="border-r-8 border-slate-300 last:border-r-0 p-0">
           <button
             :if={cell.player == -1 && @game.current_player == @my_player_index}
-            phx-click="mark_position"
-            phx-value-position={cell.position}
+            phx-click={mark_position(cell.position)}
             class="w-full h-full flex items-center justify-center text-6xl aspect-square hover:bg-slate-100 transition-colors"
           >
             ❓
@@ -56,6 +59,7 @@
           </span>
           <span
             :if={cell.player != -1 && !is_player_winner?(@game, cell.player)}
+            id={"cell#{cell.position}"}
             class={[
               "w-full h-full flex items-center justify-center text-6xl aspect-square",
               last_played_position_class(@game, cell.position)

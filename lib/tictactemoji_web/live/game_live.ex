@@ -54,28 +54,14 @@ defmodule TictactemojiWeb.GameLive do
   #   |> assign(:subscribed, subscribed)
   # end
 
-  def handle_event("mark_position", %{"position" => position}, socket) do
-    {:ok, _} =
-      GameServer.mark_position(socket.assigns.game.id, String.to_integer(position))
-
-    {:noreply, socket}
-  end
-
   def handle_event("add_cpu_players", _params, socket) do
     :ok = GameServer.add_cpu_players(socket.assigns.game.id)
     {:noreply, socket}
   end
 
   def handle_event("reset_game", _params, socket) do
-    {:ok, game} = GameServer.reset_game(socket.assigns.game.id)
-
-    my_player_index =
-      Enum.find_index(game.player_tokens, fn x -> x == socket.assigns.my_player_token end)
-
-    {:noreply,
-     socket
-     |> update(:my_player_index, fn _ -> my_player_index end)
-     |> update(:game, fn _ -> game end)}
+    {:ok, _} = GameServer.reset_game(socket.assigns.game.id)
+    {:noreply, socket}
   end
 
   def handle_info(%{event: :player_added, payload: game}, socket) do
@@ -89,7 +75,13 @@ defmodule TictactemojiWeb.GameLive do
   end
 
   def handle_info(%{event: :game_updated, payload: game}, socket) do
-    {:noreply, update(socket, :game, fn _ -> game end)}
+    my_player_index =
+      Enum.find_index(game.player_tokens, fn x -> x == socket.assigns.my_player_token end)
+
+    {:noreply,
+     socket
+     |> update(:my_player_index, fn _ -> my_player_index end)
+     |> update(:game, fn _ -> game end)}
   end
 
   def handle_info(%{event: "presence_diff", payload: diff}, socket) do
@@ -128,5 +120,20 @@ defmodule TictactemojiWeb.GameLive do
       true -> "underline"
       false -> ""
     end
+  end
+
+  defp mark_position(position) do
+    JS.push("mark_position", value: %{position: position})
+    # |> JS.transition("animate-wiggle", to: "#cell#{position}", time: 5000)
+  end
+
+  defp rematch(num_players) do
+    event =
+      JS.push("reset_game")
+
+    Enum.reduce(0..(num_players - 1), event, fn index, event ->
+      event
+      |> JS.transition("animate-spin", to: "#emoji#{index}", time: 1000)
+    end)
   end
 end
