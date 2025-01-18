@@ -54,6 +54,11 @@ defmodule TictactemojiWeb.GameLive do
   #   |> assign(:subscribed, subscribed)
   # end
 
+  def handle_event("mark_position", %{"position" => position}, socket) do
+    {:ok, _} = GameServer.mark_position(socket.assigns.game.id, position)
+    {:noreply, socket}
+  end
+
   def handle_event("add_cpu_players", _params, socket) do
     :ok = GameServer.add_cpu_players(socket.assigns.game.id)
     {:noreply, socket}

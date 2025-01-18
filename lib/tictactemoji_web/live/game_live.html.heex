@@ -28,11 +28,7 @@
     <span :if={@game.game_over?}>
       &#{player_emoji(@game, @game.current_player)}; won!
     </span>
-    <button
-      :if={@game.game_over?}
-      phx-click={rematch(@game.num_players)}
-      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
-    >
+    <button :if={@game.game_over?} phx-click={rematch(@game.num_players)} class="btn">
       Rematch
     </button>
   </div>
@@ -99,10 +95,7 @@
     <span class="block">OR</span>
   </div>
   <div class="space-y-2">
-    <button
-      phx-click="add_cpu_players"
-      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
-    >
+    <button phx-click="add_cpu_players" class="btn">
       Fill remaining positions with computer players
     </button>
   </div>
