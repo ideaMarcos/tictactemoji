@@ -10,6 +10,8 @@ import Config
 config :tictactemoji,
   generators: [timestamp_type: :utc_datetime]
 
+config :tictactemoji, :mix_env, Mix.env()
+
 # Configures the endpoint
 config :tictactemoji, TictactemojiWeb.Endpoint,
   url: [host: "localhost"],

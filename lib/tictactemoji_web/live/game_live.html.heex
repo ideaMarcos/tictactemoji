@@ -88,9 +88,10 @@
   <div class="space-y-2">
     <span class="block">Invite more players with the url:</span>
     <span class="font-mono bg-slate-100 p-2 rounded block break-all">
-      {"http://localhost:4000/game/join/#{@game.id}"}
+      {game_url(@game.id)}
     </span>
   </div>
+  <%!-- <%= if Tictactemoji.mix_env() != :prod do %> --%>
   <div class="space-y-2">
     <span class="block">OR</span>
   </div>
@@ -99,4 +100,5 @@
       Fill remaining positions with computer players
     </button>
   </div>
+  <%!-- <% end %> --%>
 </div>

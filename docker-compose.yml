@@ -1,0 +1,52 @@
+services:
+
+  tictactemoji1:
+    build: .
+    command:
+      - /app/bin/server
+    environment:
+      - PORT=4000
+      - PHX_HOST=tictactemoji.docker.localhost
+      - SECRET_KEY_BASE=0ifHan15bsgGLfSEeHB21ifI7c/qdQ32iUTHfPbaI7lRZ9DZ8ZBxCSxiM9PIQt/l
+      - RELEASE_COOKIE=F9rPt5WGhCgFZbGx_8eO449Oj0H8obmf3b8otgPoUVHfqPBsP2sC-Q==
+      - IP_V4_ADDRESS=192.0.1.11
+      - DNS_CLUSTER_QUERY=tictactemoji.docker.internal
+      - DNS_CLUSTER_NAME=tictactemoji
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tictactemoji.rule=Host(`tictactemoji.docker.localhost`)"
+      - "traefik.http.services.tictactemoji.loadbalancer.server.port=4000"
+
+  tictactemoji2:
+    build: .
+    command:
+      - /app/bin/server
+    environment:
+      - PORT=4000
+      - PHX_HOST=tictactemoji.docker.localhost
+      - SECRET_KEY_BASE=0ifHan15bsgGLfSEeHB21ifI7c/qdQ32iUTHfPbaI7lRZ9DZ8ZBxCSxiM9PIQt/l
+      - RELEASE_COOKIE=F9rPt5WGhCgFZbGx_8eO449Oj0H8obmf3b8otgPoUVHfqPBsP2sC-Q==
+      - IP_V4_ADDRESS=172.18.0.3
+      - DNS_CLUSTER_QUERY=tictactemoji.docker.internal
+      - DNS_CLUSTER_NAME=tictactemoji
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tictactemoji.rule=Host(`tictactemoji.docker.localhost`)"
+      - "traefik.http.services.tictactemoji.loadbalancer.server.port=4000"
+
+  traefik:
+    image: traefik
+    command:
+      - --entrypoints.web.address=:80
+      - --providers.docker
+      - --api.insecure
+      # - --log.level=DEBUG
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    labels:
+      - "traefik.http.routers.traefik.entrypoints=web"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.docker.localhost`)"
+      - "traefik.http.routers.traefik.service=api@internal"

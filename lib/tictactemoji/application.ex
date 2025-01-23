@@ -14,6 +14,7 @@ defmodule Tictactemoji.Application do
       {Registry, keys: :unique, name: Tictactemoji.GameRegistry},
       Tictactemoji.Presence,
       {DynamicSupervisor, strategy: :one_for_one, name: Tictactemoji.GameSupervisor},
+      Tictactemoji.GameGarbageCollector,
       TictactemojiWeb.Endpoint
     ]
 

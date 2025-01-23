@@ -141,4 +141,11 @@ defmodule TictactemojiWeb.GameLive do
       |> JS.transition("animate-spin", to: "#emoji#{index}", time: 1000)
     end)
   end
+
+  defp game_url(game_id) do
+    %{scheme: scheme, host: host, port: port} =
+      Enum.into(Tictactemoji.config([TictactemojiWeb.Endpoint, :url]), %{})
+
+    URI.to_string(%URI{scheme: scheme, host: host, port: port, path: "/game/join/#{game_id}"})
+  end
 end

@@ -1,4 +1,11 @@
+import ExUnit.Assertions
+import IEx.Helpers
+
 alias Tictactemoji.Game
+
+import_if_available(Ecto.Query)
+import_if_available(Ecto.Query, only: [from: 2])
+import_if_available(Ecto.Changeset)
 
 defmodule Iex do
   def cpu_game() do
