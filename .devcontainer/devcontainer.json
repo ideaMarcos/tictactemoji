@@ -15,7 +15,6 @@
 	// "remoteEnv": {
 	// 	"DB_HOST": "host.docker.internal"
 	// },
-	"remoteUser": "devcontainer",
 	// Uncomment the next line to run commands after the container is created.
 	// "postCreateCommand": "cat /etc/os-release",
 	// Configure tool-specific properties.

@@ -12,7 +12,7 @@ config :tictactemoji, TictactemojiWeb.Endpoint,
 config :logger,
   handle_otp_reports: true,
   handle_sasl_reports: true,
-  level: :info
+  level: :warning
 
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.
