@@ -26,13 +26,15 @@ defmodule Tictactemoji.GameGarbageCollector do
   end
 
   defp work(_state) do
+    last_update_interval = :timer.minutes(10)
     Logger.info("Looking for games to stop")
 
     GameSupervisor.which_children()
     |> Enum.each(fn {_, pid, _, _} ->
       {:ok, game} = GameServer.get_game(pid)
 
-      if game.game_over? do
+      if game.game_over? || game.last_updated == nil ||
+           DateTime.diff(DateTime.utc_now(), game.last_updated) >= last_update_interval do
         Logger.info("Stopping game #{game.id}")
         GameSupervisor.stop_game(game.id)
       end

@@ -27,7 +27,8 @@ defmodule Tictactemoji.Game do
             player_tokens: nil,
             player_emojis: nil,
             sparse_grid: nil,
-            game_over?: nil
+            game_over?: nil,
+            last_updated: nil
 
   def new(game_id) do
     game = %__MODULE__{
@@ -84,6 +85,7 @@ defmodule Tictactemoji.Game do
       game
       | current_player: 0,
         game_over?: false,
+        last_updated: DateTime.utc_now(),
         player_tokens: Enum.map(player_order, fn x -> Enum.at(game.player_tokens, x) end),
         player_emojis: Enum.map(player_order, fn x -> Enum.at(game.player_emojis, x) end),
         sparse_grid:
@@ -143,7 +145,13 @@ defmodule Tictactemoji.Game do
             rem(game.current_player + 1, game.num_players)
           end
 
-        {:ok, %{game | current_player: current_player, game_over?: player_won}}
+        {:ok,
+         %{
+           game
+           | last_updated: DateTime.utc_now(),
+             current_player: current_player,
+             game_over?: player_won
+         }}
       else
         {:error, :position_already_taken}
       end

@@ -23,7 +23,7 @@
       Waiting for &#{player_emoji(@game, @game.current_player)};
     </span>
     <span :if={!@game.game_over? && @game.current_player == @my_player_index}>
-      GO &#{player_emoji(@game, @game.current_player)};
+      Your turn &#{player_emoji(@game, @game.current_player)};
     </span>
     <span :if={@game.game_over?}>
       &#{player_emoji(@game, @game.current_player)}; won!
