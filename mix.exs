@@ -25,6 +25,7 @@ defmodule Tictactemoji.MixProject do
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:dev), do: ["lib", "lib/mix/tasks"]
   defp elixirc_paths(_), do: ["lib"]
 
   # Specifies your project dependencies.
@@ -32,9 +33,11 @@ defmodule Tictactemoji.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:axon, ">= 0.0.0"},
       {:bandit, ">= 0.0.0"},
       {:dns_cluster, ">= 0.0.0"},
       {:esbuild, ">= 0.0.0", runtime: Mix.env() == :dev},
+      {:exla, ">= 0.0.0"},
       {:floki, ">= 0.0.0", only: :test},
       {:gettext, ">= 0.0.0"},
       {:heroicons,
@@ -45,6 +48,7 @@ defmodule Tictactemoji.MixProject do
        compile: false,
        depth: 1},
       {:jason, ">= 0.0.0"},
+      {:nx, ">= 0.0.0"},
       {:phoenix, ">= 0.0.0"},
       {:phoenix_ecto, ">= 0.0.0"},
       {:phoenix_html, ">= 0.0.0"},

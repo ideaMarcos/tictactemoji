@@ -114,7 +114,11 @@ defmodule TictactemojiWeb.GameLive do
   end
 
   defp is_player_winner?(%Game{} = game, index) do
-    game.game_over? && game.current_player == index
+    game.result == :win && game.current_player == index
+  end
+
+  defp is_tie_game?(%Game{} = game) do
+    game.result == :tie
   end
 
   defp last_played_position_class(%Game{} = game, position) do

@@ -17,7 +17,8 @@ defmodule Tictactemoji.Game do
   ### 20 | 21 | 22 | 23 | 24
 
   @unplayed_position -1
-  @cpu_token "CPU"
+  @simple_cpu_token "CPU_SMPL"
+  @trained_cpu_token "CPU_TRAIN"
 
   defstruct id: nil,
             grid_size: nil,
@@ -28,7 +29,9 @@ defmodule Tictactemoji.Game do
             player_emojis: nil,
             sparse_grid: nil,
             game_over?: nil,
-            last_updated: nil
+            result: nil,
+            history: nil,
+            move_count: nil
 
   def new(game_id) do
     game = %__MODULE__{
@@ -55,21 +58,28 @@ defmodule Tictactemoji.Game do
 
   defp do_set_options(%__MODULE__{} = game, options) do
     num_players = Keyword.get(options, :num_players)
-    grid_size = num_players + 1
+    grid_size = calc_grid_size(num_players)
 
     {:ok,
      %{
        game
        | grid_size: grid_size,
-         sequence_size: max(grid_size - 2, 3),
+         sequence_size: 3,
          num_players: num_players,
          player_emojis: Enum.take_random(~c"🐶🐱🐭🐰🦊🐻🐼🐨🦁🐮🐷🐸", num_players)
      }}
   end
 
-  defp start_game_if_ready(%__MODULE__{id: id} = game) do
+  def calc_grid_size(num_players) do
+    num_players + 1
+  end
+
+  def calc_num_positions(grid_size) do
+    Integer.pow(grid_size, 2)
+  end
+
+  defp start_game_if_ready(%__MODULE__{} = game) do
     if ready?(game) do
-      Logger.info("starting new game", id: id)
       reset_game(game)
     else
       game
@@ -85,12 +95,14 @@ defmodule Tictactemoji.Game do
       game
       | current_player: 0,
         game_over?: false,
-        last_updated: DateTime.utc_now(),
         player_tokens: Enum.map(player_order, fn x -> Enum.at(game.player_tokens, x) end),
         player_emojis: Enum.map(player_order, fn x -> Enum.at(game.player_emojis, x) end),
         sparse_grid:
           List.duplicate(@unplayed_position, game.sequence_size)
-          |> List.duplicate(game.num_players)
+          |> List.duplicate(game.num_players),
+        history: List.duplicate([], game.num_players),
+        move_count: 0,
+        result: nil
     }
   end
 
@@ -112,14 +124,23 @@ defmodule Tictactemoji.Game do
     end
   end
 
-  def add_cpu_players(%__MODULE__{} = game) do
-    remaining =
-      List.duplicate(@cpu_token, game.num_players - length(game.player_tokens))
-      |> Enum.with_index(fn x, index -> "#{x}#{index + 1}" end)
-
-    game = %{game | player_tokens: remaining ++ game.player_tokens}
-
+  def add_cpu_player(%__MODULE__{} = game, trained?) do
+    token = if trained?, do: @trained_cpu_token, else: @simple_cpu_token
+    token = "#{token}_#{length(game.player_tokens) + 1}"
+    game = %{game | player_tokens: [token | game.player_tokens]}
     {:ok, start_game_if_ready(game)}
+  end
+
+  def add_cpu_players(%__MODULE__{} = game, trained?) do
+    remaining = game.num_players - length(game.player_tokens)
+
+    new_game =
+      Enum.reduce(1..remaining, game, fn _, new_game ->
+        {:ok, new_game} = add_cpu_player(new_game, trained?)
+        new_game
+      end)
+
+    {:ok, start_game_if_ready(new_game)}
   end
 
   def mark_position(%__MODULE__{game_over?: true}, _), do: {:error, :game_over}
@@ -129,17 +150,32 @@ defmodule Tictactemoji.Game do
       {:error, :game_over}
     else
       if playable_position?(game, position) do
-        current_positions = Enum.at(game.sparse_grid, game.current_player)
-        [_oldest | new_current_positions] = Enum.concat(current_positions, [position])
+        new_current_positions =
+          Enum.at(game.sparse_grid, game.current_player)
+          |> Enum.concat([position])
+          |> Enum.take(-game.sequence_size)
 
         new_sparse_grid =
           List.replace_at(game.sparse_grid, game.current_player, new_current_positions)
 
-        game = %{game | sparse_grid: new_sparse_grid}
-        player_won = current_player_won?(game)
+        current_player_history =
+          Enum.at(game.history, game.current_player)
+          |> Enum.concat([{to_nn_input_data(game), position}])
+
+        new_history =
+          List.replace_at(game.history, game.current_player, current_player_history)
+
+        result =
+          cond do
+            current_player_won?(%{game | sparse_grid: new_sparse_grid}) -> :win
+            Integer.floor_div(game.move_count, game.num_players) > 50 -> :tie
+            true -> nil
+          end
+
+        game_over? = result != nil
 
         current_player =
-          if player_won do
+          if game_over? do
             game.current_player
           else
             rem(game.current_player + 1, game.num_players)
@@ -148,9 +184,12 @@ defmodule Tictactemoji.Game do
         {:ok,
          %{
            game
-           | last_updated: DateTime.utc_now(),
-             current_player: current_player,
-             game_over?: player_won
+           | current_player: current_player,
+             history: new_history,
+             sparse_grid: new_sparse_grid,
+             game_over?: game_over?,
+             result: result,
+             move_count: game.move_count + 1
          }}
       else
         {:error, :position_already_taken}
@@ -158,26 +197,26 @@ defmodule Tictactemoji.Game do
     end
   end
 
+  def simple_cpu_token, do: @simple_cpu_token
+  def trained_cpu_token, do: @trained_cpu_token
+
   def get_first_human_player_index(%__MODULE__{} = game) do
     game.player_tokens
-    |> Enum.find_index(fn x -> not String.starts_with?(x, @cpu_token) end)
+    |> Enum.find_index(fn x -> not String.starts_with?(x, @simple_cpu_token) end)
   end
 
   def is_cpu_move?(%__MODULE__{current_player: nil}), do: false
   def is_cpu_move?(%__MODULE__{game_over?: true}), do: false
 
   def is_cpu_move?(%__MODULE__{} = game) do
-    game.player_tokens
-    |> Enum.at(game.current_player)
-    |> String.starts_with?(@cpu_token)
-  end
+    token =
+      game.player_tokens
+      |> Enum.at(game.current_player)
 
-  def make_cpu_move(%__MODULE__{} = game) do
-    if is_cpu_move?(game) do
-      position = Tictactemoji.Cpu.choose_position(game)
-      mark_position(game, position)
-    else
-      {:error, :not_cpu_move}
+    cond do
+      String.starts_with?(token, @simple_cpu_token) -> true
+      String.starts_with?(token, @trained_cpu_token) -> true
+      true -> false
     end
   end
 
@@ -188,16 +227,16 @@ defmodule Tictactemoji.Game do
   def open_positions(%__MODULE__{} = game) do
     taken = all_positions(game)
 
-    0..(Integer.pow(game.grid_size, 2) - 1)
+    0..(calc_num_positions(game.grid_size) - 1)
     |> Enum.filter(fn x -> x not in taken end)
   end
 
-  def to_full_grid(%__MODULE__{} = game) do
+  def to_full_grid_for_ui(%__MODULE__{} = game) do
     game.sparse_grid
     |> Enum.with_index()
     |> Enum.map(fn {moves, index} ->
       moves
-      |> remove_unplayed_positions()
+      |> Enum.reject(fn x -> x == @unplayed_position end)
       |> Enum.map(fn x -> {x, index} end)
     end)
     |> Enum.concat(
@@ -213,16 +252,56 @@ defmodule Tictactemoji.Game do
     |> Enum.chunk_every(game.grid_size)
   end
 
+  def rotate_player(player, _, _) when player < 0 do
+    player
+  end
+
+  def rotate_player(player, num_players, rotations) when player < num_players do
+    Integer.mod(player + rotations, num_players)
+  end
+
+  def to_nn_input_data(%__MODULE__{} = game) do
+    {positions, oldest} =
+      game.sparse_grid
+      |> Enum.with_index()
+      |> Enum.map(fn {positions, player} ->
+        positions
+        |> Enum.with_index()
+        |> Enum.map(fn {x, index} -> {x, player, index == 0} end)
+        |> Enum.reject(fn {x, _, _} -> x == @unplayed_position end)
+      end)
+      |> Enum.concat(
+        game
+        |> open_positions()
+        |> Enum.map(fn x -> {x, @unplayed_position, false} end)
+      )
+      |> List.flatten()
+      |> Enum.sort()
+      |> Enum.reduce(
+        {[], []},
+        fn {_, player, move1}, {positions, oldest} ->
+          {
+            [rotate_player(player, game.num_players, game.current_player) + 1 | positions],
+            [bool_to_int(move1) | oldest]
+          }
+        end
+      )
+
+    [
+      rotate_player(game.current_player, game.num_players, game.current_player) + 1,
+      Enum.reverse(positions),
+      Enum.reverse(oldest)
+    ]
+  end
+
+  defp bool_to_int(true), do: 1
+  defp bool_to_int(false), do: 0
+
   defp all_positions(%__MODULE__{} = game) do
     game.sparse_grid
     |> List.flatten()
-    |> remove_unplayed_positions()
-    |> Enum.sort()
-  end
-
-  defp remove_unplayed_positions(positions) do
-    positions
     |> Enum.reject(fn x -> x == @unplayed_position end)
+    |> Enum.sort()
   end
 
   def current_player_oldest_position(%__MODULE__{} = game) do
@@ -245,7 +324,7 @@ defmodule Tictactemoji.Game do
 
     cond do
       List.first(moves) < 0 -> false
-      List.last(moves) >= Integer.pow(grid_size, 2) -> false
+      List.last(moves) >= calc_num_positions(grid_size) -> false
       horizontal_winning_moves?(moves, grid_size) -> true
       vertical_winning_moves?(moves, grid_size) -> true
       diagonal_winning_moves?(moves, grid_size) -> true

@@ -7,6 +7,8 @@
 # General application configuration
 import Config
 
+config :nx, :default_backend, EXLA.Backend
+
 config :tictactemoji,
   generators: [timestamp_type: :utc_datetime]
 
@@ -25,7 +27,7 @@ config :tictactemoji, TictactemojiWeb.Endpoint,
 
 # Configure esbuild (the version is required)
 config :esbuild,
-  version: "0.24.2",
+  version: "0.25.0",
   tictactemoji: [
     args:
       ~w(js/app.js --bundle --target=es2017 --outdir=../priv/static/assets --external:/fonts/* --external:/images/*),
@@ -35,7 +37,7 @@ config :esbuild,
 
 # Configure tailwind (the version is required)
 config :tailwind,
-  version: "3.4.3",
+  version: "3.4.17",
   tictactemoji: [
     args: ~w(
       --config=tailwind.config.js

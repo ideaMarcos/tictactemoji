@@ -2,6 +2,7 @@ defmodule Tictactemoji.GameServer do
   require Logger
   use GenServer
 
+  alias Tictactemoji.Cpu
   alias Tictactemoji.Game
 
   def get_game(pid) when is_pid(pid) do
@@ -83,7 +84,8 @@ defmodule Tictactemoji.GameServer do
 
   @impl GenServer
   def handle_call(:add_cpu_players, _from, state) do
-    {:ok, game} = Game.add_cpu_players(state.game)
+    trained? = true
+    {:ok, game} = Game.add_cpu_players(state.game, trained?)
     schedule_cpu_move(game)
     {:reply, {:ok, game}, %{state | game: game}}
   end
@@ -101,6 +103,8 @@ defmodule Tictactemoji.GameServer do
 
   @impl GenServer
   def handle_call({:mark_position, position}, _from, state) do
+    Logger.emergency(inspect({Game.to_nn_input_data(state.game), position}) <> ",")
+
     case Game.mark_position(state.game, position) do
       {:ok, game} ->
         schedule_cpu_move(game)
@@ -120,7 +124,7 @@ defmodule Tictactemoji.GameServer do
 
   @impl GenServer
   def handle_info(:make_cpu_move, state) do
-    case Game.make_cpu_move(state.game) do
+    case Cpu.make_move(state.game) do
       {:ok, game} ->
         schedule_cpu_move(game)
         broadcast_game_updated!(state.game.id, game)
