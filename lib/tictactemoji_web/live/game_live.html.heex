@@ -79,29 +79,3 @@
     </table>
   </div>
 </div>
-
-<div :if={!Game.ready?(@game)} class="p-4 text-center">
-  <div class="text-xl mb-4">
-    {ngettext(
-      "Waiting for 1 player.",
-      "Waiting for %{count} players.",
-      @game.num_players - length(@game.player_tokens)
-    )}
-  </div>
-  <div class="space-y-2">
-    <span class="block">Invite more players with the url:</span>
-    <span class="font-mono bg-slate-100 p-2 rounded block break-all">
-      {game_url(@game.id)}
-    </span>
-  </div>
-  <%!-- <%= if Tictactemoji.mix_env() != :prod do %> --%>
-  <div class="space-y-2">
-    <span class="block">OR</span>
-  </div>
-  <div class="space-y-2">
-    <button phx-click="add_cpu_players" class="btn">
-      Fill remaining positions with computer players
-    </button>
-  </div>
-  <%!-- <% end %> --%>
-</div>

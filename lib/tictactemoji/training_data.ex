@@ -1,5 +1,6 @@
 defmodule Tictactemoji.TrainingData do
   require Logger
+  alias Tictactemoji.Model
   alias Tictactemoji.Game
 
   def to_tensor(game_data, num_players) when is_list(game_data) do
@@ -13,7 +14,9 @@ defmodule Tictactemoji.TrainingData do
 
     {game_state_data, best_move_data} =
       game_data
-      |> Enum.flat_map(fn x -> add_variations(x, num_players, best_move_variations) end)
+      |> Enum.flat_map(fn x -> add_variations(x, best_move_variations) end)
+      |> List.flatten()
+      |> Enum.map(&expand_positions_format/1)
       |> Enum.shuffle()
       |> Enum.reduce(
         {[], []},
@@ -27,12 +30,11 @@ defmodule Tictactemoji.TrainingData do
 
     game_states =
       game_state_data
-      |> Nx.tensor(type: :s8)
-      |> Nx.divide(10)
+      |> Nx.tensor()
 
     best_moves =
       best_move_data
-      |> Nx.tensor(type: :s8)
+      |> Nx.tensor()
       |> Nx.new_axis(-1)
       |> Nx.equal(Nx.iota({1, num_positions}))
 
@@ -51,22 +53,24 @@ defmodule Tictactemoji.TrainingData do
     |> Stream.zip(Nx.to_batched(train_best_moves, train_batch_size))
   end
 
-  def add_variations({[player, positions, oldest], best_move}, num_players, best_move_variations) do
-    Enum.flat_map(1..num_players, fn idx ->
-      pl = rotate_player(player, idx, num_players)
-      pos = Enum.map(positions, fn p -> rotate_player(p, idx, num_players) end)
-      add_rotations({[pl, pos, oldest], best_move}, best_move_variations)
-    end)
+  def expand_positions_format({[positions, oldest], best_move}) do
+    {expand_positions_format([positions, oldest]), best_move}
   end
 
-  def rotate_player(player, idx, num_players) do
-    cond do
-      player == 0 -> 0
-      true -> Integer.mod(player + idx - 1, num_players) + 1
-    end
+  def expand_positions_format([positions, oldest]) do
+    new_positions =
+      Enum.map(positions, fn x ->
+        case x do
+          0 -> [1, 0, 0]
+          1 -> [0, 1, 0]
+          2 -> [0, 0, 1]
+        end
+      end)
+
+    [new_positions, oldest]
   end
 
-  def add_rotations({[player, positions, oldest], best_move}, best_move_variations) do
+  def add_variations({[positions, oldest], best_move}, best_move_variations) do
     position_variations =
       Nx.tensor(positions) |> Nx.reshape({3, 3}) |> compute_rotations()
 
@@ -76,10 +80,10 @@ defmodule Tictactemoji.TrainingData do
     Enum.zip(position_variations, oldest_variations)
     |> Enum.with_index()
     |> Enum.map(fn {{p, o}, idx} ->
-      flat_o = Nx.multiply(p, o) |> Nx.to_flat_list()
+      flat_o = Nx.to_flat_list(o)
       flat_p = Nx.to_flat_list(p)
 
-      {[player, flat_p, flat_o],
+      {[flat_p, flat_o],
        best_move_variations |> Enum.at(idx) |> Enum.find_index(fn x -> x == best_move end)}
     end)
     |> Enum.uniq()
@@ -103,7 +107,7 @@ defmodule Tictactemoji.TrainingData do
   defp fliplr(%Nx.Tensor{} = t), do: t |> Nx.reverse(axes: [1])
   defp flipud(%Nx.Tensor{} = t), do: t |> Nx.reverse(axes: [0])
 
-  def print_ascii_art({[player, positions, old_moves], best_move} = data, grid_size \\ 3) do
+  def print_ascii_art({[positions, old_moves], best_move} = data, grid_size \\ 3) do
     chunky_positions =
       Enum.zip(positions, old_moves)
       |> Enum.with_index()
@@ -119,8 +123,7 @@ defmodule Tictactemoji.TrainingData do
 
     Enum.join(
       [
-        inspect(data),
-        "Player #{player} should play the X"
+        inspect(data)
         | chunky_positions
       ],
       "\n"
@@ -150,59 +153,96 @@ defmodule Tictactemoji.TrainingData do
     end
   end
 
+  def mytest() do
+    model = Model.new(2)
+
+    Enum.map(1..10, fn _ ->
+      range = 6..6
+
+      Task.async(fn ->
+        Enum.map(range, fn x ->
+          data_for_move(x)
+        end)
+        |> List.flatten()
+        |> Enum.flat_map(fn {x, y} ->
+          state = Tictactemoji.AxonCache.train_model(range, load())
+
+          p =
+            Model.predict(model, state, x)
+            |> List.first()
+
+          if p != y do
+            [%{best_move: y, predict: p, data: x}]
+          else
+            []
+          end
+        end)
+      end)
+    end)
+    |> Task.await_many(:infinity)
+    |> List.flatten()
+    |> Enum.group_by(fn x ->
+      Map.get(x, :data)
+    end)
+
+    # |> Enum.map(fn {k, v} ->
+    #   {k, Enum.count(v)}
+    # end)
+  end
+
   def data_for_move(1) do
     [
-      {[1, [0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 4}
+      {[[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 4}
     ]
   end
 
   def data_for_move(2) do
     [
-      {[1, [2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 4},
-      {[1, [0, 2, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 4},
-      {[1, [0, 0, 0, 0, 2, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 1}
+      {[[2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 4},
+      {[[0, 2, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 4},
+      {[[0, 0, 0, 0, 2, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 1}
     ]
   end
 
   def data_for_move(3) do
     [
-      {[1, [0, 2, 0, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 3},
-      {[1, [2, 0, 0, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 1},
-      {[1, [0, 2, 0, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 0}
+      {[[2, 0, 0, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 1},
+      {[[0, 2, 0, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 0}
     ]
   end
 
   def data_for_move(4) do
     [
-      {[1, [1, 2, 0, 0, 2, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 7},
-      {[1, [1, 0, 2, 0, 2, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 6},
-      {[1, [1, 0, 0, 0, 2, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 1},
-      {[1, [2, 2, 0, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 2},
-      {[1, [2, 0, 2, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 1}
+      {[[1, 2, 0, 0, 2, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 7},
+      {[[1, 0, 2, 0, 2, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 6},
+      {[[1, 0, 0, 0, 2, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 1},
+      {[[2, 2, 0, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 2},
+      {[[2, 0, 2, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 1}
     ]
   end
 
   def data_for_move(5) do
     [
-      {[1, [2, 1, 2, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 7},
-      {[1, [2, 1, 0, 2, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 7},
-      {[1, [2, 1, 0, 0, 1, 2, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 7},
-      {[1, [2, 1, 0, 0, 1, 0, 2, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 7},
-      {[1, [2, 1, 0, 0, 1, 0, 0, 2, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 3},
-      {[1, [2, 1, 0, 0, 1, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 7},
-      {[1, [2, 2, 1, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 6},
-      {[1, [2, 0, 1, 2, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 6},
-      {[1, [2, 0, 1, 0, 1, 2, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 6},
-      {[1, [2, 0, 1, 0, 1, 0, 2, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 3},
-      {[1, [2, 0, 1, 0, 1, 0, 0, 2, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 6},
-      {[1, [2, 0, 1, 0, 1, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 6}
+      {[[2, 1, 2, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 7},
+      {[[2, 1, 0, 2, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 7},
+      {[[2, 1, 0, 0, 1, 2, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 7},
+      {[[2, 1, 0, 0, 1, 0, 2, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 7},
+      {[[2, 1, 0, 0, 1, 0, 0, 2, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 3},
+      {[[2, 1, 0, 0, 1, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 7},
+      {[[2, 2, 1, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 6},
+      {[[2, 0, 1, 2, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 6},
+      {[[2, 0, 1, 0, 1, 2, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 6},
+      {[[2, 0, 1, 0, 1, 0, 2, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 3},
+      {[[2, 0, 1, 0, 1, 0, 0, 2, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 6},
+      {[[2, 0, 1, 0, 1, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 6}
     ]
   end
 
   def data_for_move(6) do
     [
-      {[1, [1, 1, 2, 0, 2, 0, 0, 0, 2], [0, 0, 0, 0, 1, 0, 0, 0, 0]], 7},
-      {[1, [1, 0, 2, 2, 2, 0, 1, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 5}
+      {[[1, 1, 2, 0, 2, 0, 0, 0, 2], [0, 0, 0, 0, 1, 0, 0, 0, 0]], 7},
+      {[[1, 0, 2, 2, 2, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0, 0, 0, 0]], 5},
+      {[[1, 0, 2, 2, 2, 0, 1, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0, 0]], 5}
     ]
   end
 

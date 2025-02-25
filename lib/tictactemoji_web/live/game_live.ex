@@ -59,11 +59,6 @@ defmodule TictactemojiWeb.GameLive do
     {:noreply, socket}
   end
 
-  def handle_event("add_cpu_players", _params, socket) do
-    :ok = GameServer.add_cpu_players(socket.assigns.game.id)
-    {:noreply, socket}
-  end
-
   def handle_event("reset_game", _params, socket) do
     {:ok, _} = GameServer.reset_game(socket.assigns.game.id)
     {:noreply, socket}
@@ -144,12 +139,5 @@ defmodule TictactemojiWeb.GameLive do
       event
       |> JS.transition("animate-spin", to: "#emoji#{index}", time: 1000)
     end)
-  end
-
-  defp game_url(game_id) do
-    %{scheme: scheme, host: host, port: port} =
-      Enum.into(Tictactemoji.config([TictactemojiWeb.Endpoint, :url]), %{})
-
-    URI.to_string(%URI{scheme: scheme, host: host, port: port, path: "/game/join/#{game_id}"})
   end
 end

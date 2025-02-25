@@ -23,11 +23,16 @@ defmodule Tictactemoji.Cpu do
     model = Model.new(game.num_players)
     trained_state = AxonCache.get_state(game.move_count + 1)
 
-    model
-    |> Model.predict(trained_state, Game.to_nn_input_data(game))
-    |> Enum.filter(fn x -> x in Game.open_positions(game) end)
-    # |> IO.inspect(label: "trained_choice")
-    |> List.first()
+    position =
+      model
+      |> Model.predict(trained_state, Game.to_nn_input_data(game))
+      |> Enum.filter(fn x -> x in Game.open_positions(game) end)
+      # |> IO.inspect(label: "trained_choice")
+      |> List.first()
+
+    Logger.emergency(inspect({Game.to_nn_input_data(game), position}) <> ",")
+
+    position
   end
 
   defp random_position(%Game{} = game) do
@@ -74,7 +79,6 @@ defmodule Tictactemoji.Cpu do
   def make_move(%Game{} = game) do
     if Game.is_cpu_move?(game) do
       position = choose_position(game)
-      Logger.emergency(inspect({Game.to_nn_input_data(game), position}) <> ",")
       Game.mark_position(game, position)
     else
       {:error, :not_cpu_move}

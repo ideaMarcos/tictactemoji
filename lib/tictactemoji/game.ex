@@ -288,7 +288,6 @@ defmodule Tictactemoji.Game do
       )
 
     [
-      rotate_player(game.current_player, game.num_players, game.current_player) + 1,
       Enum.reverse(positions),
       Enum.reverse(oldest)
     ]
