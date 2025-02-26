@@ -6,7 +6,7 @@ defmodule Tictactemoji.Model do
 
     Axon.input("grid", shape: {nil, size})
     |> Axon.flatten()
-    |> Axon.dense(512, activation: :relu)
+    |> Axon.dense(256, activation: :relu6)
     |> Axon.dense(9, activation: :softmax)
   end
 
@@ -17,7 +17,7 @@ defmodule Tictactemoji.Model do
       Polaris.Optimizers.adam(learning_rate: 0.01)
     )
     |> Axon.Loop.metric(:accuracy, "Accuracy")
-    |> Axon.Loop.run(training_data, %{}, epochs: 99)
+    |> Axon.Loop.run(training_data, %{}, epochs: 55)
   end
 
   def predict(model, state, %Nx.Tensor{} = data) do

@@ -67,7 +67,7 @@ defmodule Tictactemoji.GameServer do
   def handle_call(:add_human_player, _from, state) do
     case Game.add_human_player(state.game) do
       {:ok, token, game} ->
-        trained? = true
+        trained? = game.num_players == 2
         {:ok, game} = Game.add_cpu_players(game, trained?)
         schedule_cpu_move(game)
         {:reply, {:ok, token, game}, %{state | game: game}}

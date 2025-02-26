@@ -45,7 +45,7 @@ defmodule Tictactemoji.Cpu do
       Game.calc_num_positions(game.grid_size)
       |> Integer.floor_div(2)
 
-    if center in Game.open_positions(game) do
+    if game.move_count < 3 && center in Game.open_positions(game) do
       center
     else
       nil
