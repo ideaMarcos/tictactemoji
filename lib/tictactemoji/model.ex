@@ -6,7 +6,7 @@ defmodule Tictactemoji.Model do
 
     Axon.input("grid", shape: {nil, size})
     |> Axon.flatten()
-    |> Axon.dense(256, activation: :relu6)
+    |> Axon.dense(512, activation: :relu6)
     |> Axon.dense(9, activation: :softmax)
   end
 
