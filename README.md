@@ -18,7 +18,7 @@ https://github.com/user-attachments/assets/75bef452-8ed9-4f34-9689-cfc1b22a5a69
 * Created neural network with Axon. Uses supervised learning.
 * Meant to run locally. Not deploying this anywhere.
 * The training data included is not explained. Maybe later. It's a lot to write.
-* The grid is represented as a list from 0-9
+* The grid is represented as a list from 0-8
 ```
 0 | 1 | 2
 3 | 4 | 5
