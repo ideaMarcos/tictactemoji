@@ -27,7 +27,7 @@ defmodule Tictactemoji.Model do
     |> Nx.to_flat_list()
     |> Enum.with_index()
     |> Enum.sort(:desc)
-    # |> IO.inspect(label: "PREDICTION")
+    |> IO.inspect(label: "PREDICTION")
     |> Enum.map(fn {_value, index} -> index end)
   end
 
