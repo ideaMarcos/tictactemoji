@@ -7,7 +7,8 @@ To start your Phoenix server:
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+
+https://github.com/user-attachments/assets/75bef452-8ed9-4f34-9689-cfc1b22a5a69
 
 
 ## About
