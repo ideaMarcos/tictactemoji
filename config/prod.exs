@@ -10,8 +10,6 @@ config :tictactemoji, TictactemojiWeb.Endpoint,
 
 # Do not print debug messages in production
 config :logger,
-  handle_otp_reports: true,
-  handle_sasl_reports: true,
   level: :warning
 
 # Runtime production configuration, including reading

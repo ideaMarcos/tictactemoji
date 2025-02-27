@@ -11,11 +11,12 @@ Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 https://github.com/user-attachments/assets/75bef452-8ed9-4f34-9689-cfc1b22a5a69
 
 
-## About
+## Tech Notes
 
 * Wanted to learn more about [https://github.com/elixir-nx](Nx)
 * Used variation of tic tac toe where only last 3 moves are kept
-* Created neural network with Axon. Uses supervised learning to learn best moves.
+* Created neural network with Axon. Uses supervised learning.
+* Meant to run locally. Not deploying this anywhere.
 
 
 ## Helpful resources
