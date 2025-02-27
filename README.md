@@ -17,6 +17,7 @@ https://github.com/user-attachments/assets/75bef452-8ed9-4f34-9689-cfc1b22a5a69
 * Used variation of tic tac toe where only last 3 moves are kept
 * Created neural network with Axon. Uses supervised learning.
 * Meant to run locally. Not deploying this anywhere.
+* The training data included is not explained. Maybe later. It's a lot to write.
 * The grid is represented as a list from 0-9
 ```
 0 | 1 | 2
@@ -41,7 +42,7 @@ PREDICTION: [
 ## Helpful resources
 
 * https://pragprog.com/titles/smelixir/machine-learning-in-elixir/
-* [https://introtodeeplearning.com/](MIT Introduction to Deep Learning)
-* [https://www.youtube.com/playlist?list=PLOspHqNVtKAC-FUNMq8qjYVw6_semZHw0](Understanding AI Models)
+* https://introtodeeplearning.com
+* https://www.youtube.com/playlist?list=PLOspHqNVtKAC-FUNMq8qjYVw6_semZHw0
 * https://the-mvm.github.io/deep-q-learning-tic-tac-toe.html
 
