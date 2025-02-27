@@ -30,7 +30,7 @@ defmodule Tictactemoji.Cpu do
       # |> IO.inspect(label: "trained_choice")
       |> List.first()
 
-    Logger.emergency(inspect({Game.to_nn_input_data(game), position}) <> ",")
+    # Logger.emergency(inspect({Game.to_nn_input_data(game), position}) <> ",")
 
     position
   end

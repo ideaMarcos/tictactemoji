@@ -9,25 +9,18 @@ Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
 Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
 
-## Learn more
 
-  * Official website: https://www.phoenixframework.org/
-  * Guides: https://hexdocs.pm/phoenix/overview.html
-  * Docs: https://hexdocs.pm/phoenix
-  * Forum: https://elixirforum.com/c/phoenix-forum
-  * Source: https://github.com/phoenixframework/phoenix
+## About
+
+* Wanted to learn more about [https://github.com/elixir-nx](Nx)
+* Used variation of tic tac toe where only last 3 moves are kept
+* Created neural network with Axon. Uses supervised learning to learn best moves.
 
 
-```
-iex> {:ok, game} = Game.new("ABC123")
-iex> {:ok, game} = Game.set_options(game, num_players: 3)
-iex> {:ok, code, game} = Game.add_human_player(game)
-iex> {:ok, game} = Game.add_cpu_players(game)
-```
+## Helpful resources
 
-game = %Game{ id: "ABC123", grid_size: 3, num_players: 2, current_player: 1, player_tokens: ["N8GD6", "HQSRE"], player_emojis: [128056, 128053], sparse_grid: [[1, 3, 5], [0, 2, 4]], game_over?: false }
+* https://pragprog.com/titles/smelixir/machine-learning-in-elixir/
+* [https://introtodeeplearning.com/](MIT Introduction to Deep Learning)
+* [https://www.youtube.com/playlist?list=PLOspHqNVtKAC-FUNMq8qjYVw6_semZHw0](Understanding AI Models)
+* https://the-mvm.github.io/deep-q-learning-tic-tac-toe.html
 
-## Random
-
-- `mix phx.new tictactemoji --no-ecto --no-mailer`
-- `mix gettext.extract && mix gettext.merge priv/gettext`

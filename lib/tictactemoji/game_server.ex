@@ -90,7 +90,7 @@ defmodule Tictactemoji.GameServer do
 
   @impl GenServer
   def handle_call({:mark_position, position}, _from, state) do
-    Logger.emergency(inspect({Game.to_nn_input_data(state.game), position}) <> ",")
+    # Logger.emergency(inspect({Game.to_nn_input_data(state.game), position}) <> ",")
 
     case Game.mark_position(state.game, position) do
       {:ok, game} ->

@@ -7,6 +7,7 @@ defmodule Tictactemoji.Model do
     Axon.input("grid", shape: {nil, size})
     |> Axon.flatten()
     |> Axon.dense(512, activation: :relu6)
+    |> Axon.dense(128, activation: :relu6)
     |> Axon.dense(9, activation: :softmax)
   end
 
@@ -26,7 +27,7 @@ defmodule Tictactemoji.Model do
     |> Nx.to_flat_list()
     |> Enum.with_index()
     |> Enum.sort(:desc)
-    |> IO.inspect(label: "PREDICTION")
+    # |> IO.inspect(label: "PREDICTION")
     |> Enum.map(fn {_value, index} -> index end)
   end
 
