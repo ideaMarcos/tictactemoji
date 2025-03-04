@@ -43,6 +43,6 @@ PREDICTION: [
 
 * https://pragprog.com/titles/smelixir/machine-learning-in-elixir/
 * https://introtodeeplearning.com
-* https://www.youtube.com/playlist?list=PLOspHqNVtKAC-FUNMq8qjYVw6_semZHw0
+* https://www.youtube.com/playlist?list=PLbdTl8vSSyUDWtx6ZRnfzU3jo0Kpd9CxX
 * https://the-mvm.github.io/deep-q-learning-tic-tac-toe.html
 
