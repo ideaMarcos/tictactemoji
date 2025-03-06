@@ -1,5 +1,6 @@
 import ExUnit.Assertions
 import IEx.Helpers
+import Nx, only: :sigils
 
 alias Tictactemoji.AxonCache
 alias Tictactemoji.Cpu

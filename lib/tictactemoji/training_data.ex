@@ -1,6 +1,5 @@
 defmodule Tictactemoji.TrainingData do
   require Logger
-  alias Tictactemoji.Model
   alias Tictactemoji.Game
 
   def to_tensor(game_data, num_players) when is_list(game_data) do
@@ -13,7 +12,7 @@ defmodule Tictactemoji.TrainingData do
       game_data
       |> Enum.flat_map(fn x -> add_variations(x, best_move_variations) end)
       |> List.flatten()
-      |> Enum.map(&expand_positions_format/1)
+      |> Enum.map(&to_one_hot_encoding/1)
       |> Enum.shuffle()
       |> Enum.reduce(
         {[], []},
@@ -56,11 +55,11 @@ defmodule Tictactemoji.TrainingData do
     |> Enum.map(&Nx.to_flat_list/1)
   end
 
-  def expand_positions_format({[positions, oldest], best_move}) do
-    {expand_positions_format([positions, oldest]), best_move}
+  def to_one_hot_encoding({[positions, oldest], best_move}) do
+    {to_one_hot_encoding([positions, oldest]), best_move}
   end
 
-  def expand_positions_format([positions, oldest]) do
+  def to_one_hot_encoding([positions, oldest]) do
     Enum.zip(positions, oldest)
     |> Enum.map(fn {p, o} ->
       cond do
@@ -157,43 +156,6 @@ defmodule Tictactemoji.TrainingData do
     end
   end
 
-  def mytest() do
-    model = Model.new(2)
-
-    Enum.map(1..10, fn _ ->
-      range = 6..6
-
-      Task.async(fn ->
-        Enum.map(range, fn x ->
-          data_for_move(x)
-        end)
-        |> List.flatten()
-        |> Enum.flat_map(fn {x, y} ->
-          state = Tictactemoji.AxonCache.train_model(range, load())
-
-          p =
-            Model.predict(model, state, x)
-            |> List.first()
-
-          if p != y do
-            [%{best_move: y, predict: p, data: x}]
-          else
-            []
-          end
-        end)
-      end)
-    end)
-    |> Task.await_many(:infinity)
-    |> List.flatten()
-    |> Enum.group_by(fn x ->
-      Map.get(x, :data)
-    end)
-
-    # |> Enum.map(fn {k, v} ->
-    #   {k, Enum.count(v)}
-    # end)
-  end
-
   def data_for_move(1) do
     [
       {[[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 4}
@@ -219,8 +181,11 @@ defmodule Tictactemoji.TrainingData do
     [
       {[[0, 0, 0, 0, 1, 0, 0, 2, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 6},
       {[[0, 0, 0, 0, 1, 0, 2, 0, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 7},
+      {[[0, 0, 0, 0, 2, 0, 0, 1, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 0},
       {[[0, 0, 0, 0, 2, 0, 0, 2, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 1},
       {[[0, 0, 0, 0, 2, 0, 1, 0, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 0},
+      {[[0, 0, 0, 0, 2, 1, 0, 2, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 1},
+      {[[0, 0, 0, 0, 2, 1, 2, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 2},
       {[[0, 0, 1, 0, 2, 0, 2, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]], 1}
     ]
   end

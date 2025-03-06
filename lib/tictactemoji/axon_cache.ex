@@ -5,46 +5,25 @@ defmodule Tictactemoji.AxonCache do
   alias Tictactemoji.TrainingData
 
   def start_link(_) do
-    data = TrainingData.load()
-    group1_state = train_model([1, 2, 3])
-    group2_state = train_model([4])
-    group3_state = train_model([5, 6], data)
-
-    states = %{
-      group1_state: group1_state,
-      group2_state: group2_state,
-      group3_state: group3_state
-    }
-
-    Agent.start_link(fn -> states end, name: __MODULE__)
+    model_state = train_model()
+    Agent.start_link(fn -> model_state end, name: __MODULE__)
   end
 
-  def train_model(group_moves, extra_moves \\ []) do
+  def train_model() do
     num_players = 2
     model = Model.new(num_players)
 
     train_data =
-      group_moves
+      1..6
       |> Enum.map(fn move -> TrainingData.data_for_move(move) end)
       |> Enum.concat()
-      |> Enum.concat(extra_moves)
+      |> Enum.concat(TrainingData.load())
       |> TrainingData.to_tensor(num_players)
 
     Model.train(model, train_data)
   end
 
-  def get_state(move) when move <= 3 do
+  def get_state(_) do
     Agent.get(__MODULE__, & &1)
-    |> Map.get(:group1_state)
-  end
-
-  def get_state(move) when move == 4 do
-    Agent.get(__MODULE__, & &1)
-    |> Map.get(:group2_state)
-  end
-
-  def get_state(move) when move >= 5 do
-    Agent.get(__MODULE__, & &1)
-    |> Map.get(:group3_state)
   end
 end

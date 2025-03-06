@@ -33,7 +33,7 @@ defmodule Tictactemoji.Model do
 
   def predict(model, state, data) when is_list(data) do
     d =
-      TrainingData.expand_positions_format(data)
+      TrainingData.to_one_hot_encoding(data)
       |> List.flatten()
       |> List.wrap()
 
