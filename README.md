@@ -14,7 +14,7 @@ https://github.com/user-attachments/assets/75bef452-8ed9-4f34-9689-cfc1b22a5a69
 ## Tech Notes
 
 * [Elixir Denver Meetup talk](https://www.youtube.com/watch?v=tTpavsLzZ3c)
-* Wanted to learn more about [https://github.com/elixir-nx](Nx)
+* Wanted to learn more about [Nx](https://github.com/elixir-nx)
 * Used variation of tic tac toe where only last 3 moves are kept
 * Created neural network with Axon. Uses supervised learning.
 * Meant to run locally. Not deploying this anywhere.
